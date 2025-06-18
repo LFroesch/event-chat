@@ -2,7 +2,6 @@ import { Heart, MessageCircle, MapPin, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePostStore } from '../store/usePostStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { formatMessageTime } from '../lib/utils';
 
 const PostCard = ({ post }) => {
   const { toggleLike } = usePostStore();

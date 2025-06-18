@@ -4,7 +4,6 @@ import { User, MapPin, Calendar, MessageSquare, UserPlus, UserMinus } from 'luci
 import { useAuthStore } from '../store/useAuthStore';
 import { useFollowStore } from '../store/useFollowStore';
 import { usePostStore } from '../store/usePostStore';
-import { useEventStore } from '../store/useEventStore';
 import { axiosInstance } from '../lib/axios';
 import PostCard from '../components/PostCard';
 import EventCard from '../components/EventCard';
@@ -45,7 +44,7 @@ const OtherUserProfilePage = () => {
       const res = await axiosInstance.get(`/auth/user/${username}`);
       setUser(res.data);
     } catch (error) {
-      toast.error('User not found');
+      toast.error(error.response?.data?.message || 'Failed to fetch user');
     } finally {
       setIsLoading(false);
     }
