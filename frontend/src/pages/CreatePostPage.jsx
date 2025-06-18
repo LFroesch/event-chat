@@ -204,4 +204,23 @@ const CreatePostPage = () => {
               <button
                 type="submit"
                 className="btn btn-primary flex-1"
-                disabled={isCreating || (!formData.content
+                disabled={isCreating || (!formData.content.trim() && !formData.image)}
+              >
+                {isCreating ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Post'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CreatePostPage;
