@@ -65,7 +65,12 @@ const EventCard = ({ event, showRSVPStatus = false }) => {
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 <span>{event.location.city}, {event.location.state}</span>
-                {event.distanceInMiles && (
+                {event.distanceInMiles !== undefined && event.distanceInMiles > 0 && (
+                  <span className="text-primary">
+                    ({formatDistance(event.distanceInMiles)})
+                  </span>
+                )}
+                {showRSVPStatus && event.distanceInMiles !== undefined && (
                   <span className="text-primary">
                     ({formatDistance(event.distanceInMiles)})
                   </span>

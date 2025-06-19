@@ -14,6 +14,7 @@ import {
 import { useEventStore } from '../store/useEventStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore } from '../store/useChatStore';
+import ShareModal from '../components/ShareModal';
 import toast from 'react-hot-toast';
 
 const EventPage = () => {
@@ -30,6 +31,7 @@ const EventPage = () => {
   } = useEventStore();
 
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
 
   useEffect(() => {
@@ -130,7 +132,12 @@ const EventPage = () => {
   }
 
   const event = selectedEvent;
-  const userRSVP = event.userRSVP || 'no';
+  // Better RSVP status detection
+  const userRSVP = event.userRSVP || (
+    event.attendees?.find(attendee => 
+      attendee.user._id === authUser._id || attendee.user === authUser._id
+    )?.status || 'no'
+  );
   const isCreator = event.creator._id === authUser._id;
   const isAttending = userRSVP === 'yes';
 
@@ -265,7 +272,10 @@ const EventPage = () => {
               </button>
             )}
 
-            <button className="btn btn-outline">
+            <button 
+              className="btn btn-outline"
+              onClick={() => setShowShareModal(true)}
+            >
               <Share className="w-4 h-4" />
               Share
             </button>
@@ -321,6 +331,14 @@ const EventPage = () => {
             </div>
           </div>
         )}
+
+        {/* Share Modal */}
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          eventId={eventId}
+          eventTitle={event.title}
+        />
 
         {/* Invite Modal */}
         {showInviteModal && (

@@ -9,6 +9,7 @@ import PostCard from '../components/PostCard';
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState('events');
   const [eventFilter, setEventFilter] = useState('nearby');
+  const [postFilter, setPostFilter] = useState('following');
   
   const { 
     myEvents, 
@@ -20,16 +21,22 @@ const HomePage = () => {
   } = useEventStore();
   
   const { 
-    followingPosts, 
-    getFollowingPosts, 
+    followingPosts,
+    nearbyPosts,
+    getFollowingPosts,
+    getNearbyPosts,
+    initLocationListener: initPostLocationListener,
     isLoading: postsLoading 
   } = usePostStore();
 
-  // Initialize location change listeners
   useEffect(() => {
-    const cleanup = initLocationListener();
-    return cleanup; // Cleanup listeners on unmount
-  }, [initLocationListener]);
+    const cleanupEvents = initLocationListener();
+    const cleanupPosts = initPostLocationListener();
+    return () => {
+      cleanupEvents();
+      cleanupPosts();
+    };
+  }, [initLocationListener, initPostLocationListener]);
 
   useEffect(() => {
     if (activeTab === 'events') {
@@ -38,14 +45,18 @@ const HomePage = () => {
       } else {
         getNearbyEvents();
       }
-    } else if (activeTab === 'following') {
-      getFollowingPosts();
+    } else if (activeTab === 'posts') {
+      if (postFilter === 'following') {
+        getFollowingPosts();
+      } else {
+        getNearbyPosts();
+      }
     }
-  }, [activeTab, eventFilter, getMyEvents, getNearbyEvents, getFollowingPosts]);
+  }, [activeTab, eventFilter, postFilter, getMyEvents, getNearbyEvents, getFollowingPosts, getNearbyPosts]);
 
   const tabs = [
     { id: 'events', label: 'Events', icon: Calendar },
-    { id: 'following', label: 'Following', icon: Users },
+    { id: 'posts', label: 'Posts', icon: Users },
     { id: 'messages', label: 'Messages', icon: MessageSquare }
   ];
 
@@ -159,7 +170,56 @@ const HomePage = () => {
             </div>
           </div>
         )}
+        {/* Posts Tab */}
+        {activeTab === 'posts' && (
+          <div className="space-y-6">
+            {/* Post Filter */}
+            <div className="flex gap-2">
+              <button
+                className={`btn btn-sm ${postFilter === 'following' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setPostFilter('following')}
+              >
+                <Users className="w-4 h-4" />
+                Following
+              </button>
+              <button
+                className={`btn btn-sm ${postFilter === 'nearby' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setPostFilter('nearby')}
+              >
+                <MapPin className="w-4 h-4" />
+                Posts Near Me
+              </button>
+            </div>
 
+            {/* Posts List */}
+            <div className="space-y-4">
+              {postsLoading ? (
+                <div className="flex justify-center py-8">
+                  <span className="loading loading-spinner loading-lg"></span>
+                </div>
+              ) : (
+                <>
+                  {postFilter === 'following' && followingPosts.map((post) => (
+                    <PostCard key={post._id} post={post} />
+                  ))}
+                  {postFilter === 'nearby' && nearbyPosts.map((post) => (
+                    <PostCard key={post._id} post={post} showDistance />
+                  ))}
+                  {((postFilter === 'following' && followingPosts.length === 0) ||
+                    (postFilter === 'nearby' && nearbyPosts.length === 0)) && (
+                    <div className="text-center py-8">
+                      <p className="text-base-content/60">
+                        {postFilter === 'following' 
+                          ? "No posts from people you follow yet" 
+                          : "No posts found nearby"}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {/* Floating Action Button for Create Event */}
         {activeTab === 'events' && (
           <div className="fixed bottom-6 right-6">
@@ -168,7 +228,14 @@ const HomePage = () => {
             </Link>
           </div>
         )}
-
+        {/* Floating Action Button for Create Post */}
+        {activeTab === 'posts' && (
+          <div className="fixed bottom-6 right-6">
+            <Link to="/create-post" className="btn btn-primary btn-circle btn-lg shadow-lg">
+              <MessageSquare className="w-6 h-6" />
+            </Link>
+          </div>
+        )}
         {/* Floating Action Button for Create Post */}
         {activeTab === 'following' && (
           <div className="fixed bottom-6 right-6">

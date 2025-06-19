@@ -2,6 +2,7 @@ import { Heart, MessageCircle, MapPin, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePostStore } from '../store/usePostStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { formatDistance } from '../lib/utils';
 
 const PostCard = ({ post }) => {
   const { toggleLike } = usePostStore();
@@ -85,6 +86,11 @@ const PostCard = ({ post }) => {
         <div className="flex items-center gap-1 text-sm text-base-content/60 mb-4">
           <MapPin className="w-4 h-4" />
           <span>{post.location.city}, {post.location.state}</span>
+          {post.distanceInMiles !== undefined && post.distanceInMiles > 0 && (
+            <span className="text-primary">
+              ({formatDistance(post.distanceInMiles)})
+            </span>
+          )}
         </div>
 
         {/* Actions */}
