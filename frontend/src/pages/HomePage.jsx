@@ -15,6 +15,7 @@ const HomePage = () => {
     nearbyEvents, 
     getMyEvents, 
     getNearbyEvents, 
+    initLocationListener,
     isLoading: eventsLoading 
   } = useEventStore();
   
@@ -23,6 +24,12 @@ const HomePage = () => {
     getFollowingPosts, 
     isLoading: postsLoading 
   } = usePostStore();
+
+  // Initialize location change listeners
+  useEffect(() => {
+    const cleanup = initLocationListener();
+    return cleanup; // Cleanup listeners on unmount
+  }, [initLocationListener]);
 
   useEffect(() => {
     if (activeTab === 'events') {
