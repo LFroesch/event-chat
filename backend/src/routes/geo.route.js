@@ -157,22 +157,36 @@ router.post("/reverse-geocode", protectRoute, async (req, res) => {
       return res.status(400).json({ message: "Coordinates [lng, lat] are required" });
     }
 
-    // This is a mock reverse geocoding function
-    // In production, you'd use a real geocoding service
-    const mockReverseGeocode = (lng, lat) => {
-      // Very simplified - you'd call an actual geocoding API here
-      if (lng >= -125 && lng <= -114 && lat >= 32 && lat <= 42) {
-        return { city: "San Francisco", state: "CA", country: "USA" };
-      }
-      if (lng >= -119 && lng <= -117 && lat >= 33 && lat <= 35) {
-        return { city: "Los Angeles", state: "CA", country: "USA" };
-      }
-      // Default fallback
-      return { city: "Unknown City", state: "Unknown", country: "USA" };
+    const reverseGeocode = async (lng, lat) => {
+    try {
+        // Try OpenStreetMap's Nominatim (often more accurate for smaller cities)
+        const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`
+        );
+        const data = await response.json();
+        
+        return {
+        city: data.address?.city || data.address?.town || data.address?.village || "Unknown City",
+        state: data.address?.state || "Unknown State",
+        country: data.address?.country || "Unknown Country"
+        };
+    } catch (error) {
+        console.log("Nominatim geocoding failed, falling back:", error);
+        // Fallback to BigDataCloud
+        const response2 = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+        );
+        const data2 = await response2.json();
+        return {
+        city: data2.city || data2.locality || "Unknown City",
+        state: data2.principalSubdivision || "Unknown State", 
+        country: data2.countryName || "Unknown Country"
+        };
+    }
     };
 
     const [lng, lat] = coordinates;
-    const locationData = mockReverseGeocode(lng, lat);
+    const locationData = await reverseGeocode(lng, lat);
 
     res.status(200).json({
       ...locationData,
