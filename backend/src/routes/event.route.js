@@ -346,6 +346,9 @@ router.post("/:eventId/rsvp", protectRoute, async (req, res) => {
 
     await event.save();
 
+    // Populate attendees for the response
+    await event.populate('attendees.user', 'fullName username profilePic');
+
     // Create notification for event creator (if not own event)
     if (event.creator.toString() !== userId.toString() && status === 'yes') {
       const notification = new Notification({
@@ -361,7 +364,8 @@ router.post("/:eventId/rsvp", protectRoute, async (req, res) => {
     res.status(200).json({ 
       message: `RSVP updated to ${status}`,
       userRSVP: status,
-      attendeeCount: event.attendees.filter(a => a.status === 'yes').length
+      attendeeCount: event.attendees.filter(a => a.status === 'yes').length,
+      attendees: event.attendees
     });
   } catch (error) {
     console.log("Error in rsvpEvent:", error.message);
