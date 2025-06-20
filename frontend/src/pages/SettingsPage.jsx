@@ -2,7 +2,7 @@ import { THEMES } from "../constants";
 import { useThemeStore } from "../store/useThemeStore";
 import { useLocationStore } from "../store/useLocationStore";
 import { Send, MapPin, Search, Save, Loader, Edit, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 const PREVIEW_MESSAGES = [
   { id: 1, content: "Hey! How's it going?", isSent: false },
@@ -26,6 +26,11 @@ const SettingsPage = () => {
   const [citySearch, setCitySearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [localRadius, setLocalRadius] = useState(25);
+  const [isSearching, setIsSearching] = useState(false);
+  
+  // Refs for cleanup
+  const abortControllerRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     getLocationSettings();
@@ -37,15 +42,60 @@ const SettingsPage = () => {
     }
   }, [locationSettings]);
 
-  const handleCitySearch = async (query) => {
+  // Cleanup function
+  const cleanup = useCallback(() => {
+    // Cancel any pending search request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
+    // Clear any pending timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
+    // Reset search state
+    setIsSearching(false);
+    setSearchResults([]);
+  }, []);
+
+  // Debounced city search
+  const handleCitySearch = useCallback((query) => {
     setCitySearch(query);
+    
+    // Clear previous search
+    cleanup();
+    
     if (query.length >= 2) {
-      const results = await searchCities(query);
-      setSearchResults(results);
+      setIsSearching(true);
+      
+      // Create new abort controller for this search
+      abortControllerRef.current = new AbortController();
+      
+      // Debounce the search with 1.5 second delay
+      timeoutRef.current = setTimeout(async () => {
+        try {
+          const results = await searchCities(query, abortControllerRef.current);
+          
+          // Only update results if the search wasn't cancelled
+          if (!abortControllerRef.current?.signal.aborted) {
+            setSearchResults(results);
+          }
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error('Search error:', error);
+            setSearchResults([]);
+          }
+        } finally {
+          setIsSearching(false);
+        }
+      }, 1500); // 1.5 second debounce
     } else {
       setSearchResults([]);
     }
-  };
+  }, [searchCities, cleanup]);
 
   const handleSelectCity = async (city) => {
     try {
@@ -55,13 +105,17 @@ const SettingsPage = () => {
         country: city.country,
         coordinates: city.coordinates
       });
-      setIsEditingLocation(false);
-      setCitySearch("");
-      setSearchResults([]);
+      handleCloseEditModal();
     } catch (error) {
       console.error("Failed to update location:", error);
     }
   };
+
+  const handleCloseEditModal = useCallback(() => {
+    cleanup();
+    setIsEditingLocation(false);
+    setCitySearch("");
+  }, [cleanup]);
 
   const handleRadiusChange = async (newRadius) => {
     setLocalRadius(newRadius);
@@ -73,6 +127,11 @@ const SettingsPage = () => {
       console.error("Failed to update radius:", error);
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
 
   return (
     <div className="container mx-auto px-4 pt-20 max-w-5xl">
@@ -233,41 +292,50 @@ const SettingsPage = () => {
                     <h4 className="font-medium">Set Your Location</h4>
                     <button
                       className="btn btn-ghost btn-sm"
-                      onClick={() => {
-                        setIsEditingLocation(false);
-                        setCitySearch("");
-                        setSearchResults([]);
-                      }}
+                      onClick={handleCloseEditModal}
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                      <h1 className="text-sm">City, State Code | ex: San Francisco, CA</h1>
+                  <h1 className="text-sm">City, State Code | ex: San Francisco, CA</h1>
                   
                   <div className="space-y-2">
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      placeholder="Search for a city..."
-                      value={citySearch}
-                      onChange={(e) => handleCitySearch(e.target.value)}
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="input input-bordered w-full pr-10"
+                        placeholder="Search for a city..."
+                        value={citySearch}
+                        onChange={(e) => handleCitySearch(e.target.value)}
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <Loader className="w-4 h-4 animate-spin text-primary" />
+                        </div>
+                      )}
+                    </div>
                     
                     {searchResults.length > 0 && (
                       <div className="max-h-48 overflow-y-auto bg-base-100 rounded-lg border">
                         {searchResults.map((city, index) => (
                           <button
                             key={index}
-                            className="w-full p-3 text-left hover:bg-base-200 flex items-center gap-3"
+                            className="w-full p-3 text-left hover:bg-base-200 flex items-center gap-3 transition-colors"
                             onClick={() => handleSelectCity(city)}
                           >
-                            <MapPin className="w-4 h-4 text-primary" />
+                            <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
                             <div>
                               <p className="font-medium">{city.city}, {city.state}</p>
                               <p className="text-sm text-base-content/60">{city.country}</p>
                             </div>
                           </button>
                         ))}
+                      </div>
+                    )}
+                    
+                    {citySearch.length >= 2 && searchResults.length === 0 && !isSearching && (
+                      <div className="p-3 text-center text-base-content/60 bg-base-100 rounded-lg border">
+                        No cities found for "{citySearch}"
                       </div>
                     )}
                   </div>

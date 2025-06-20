@@ -18,9 +18,11 @@ import { useEffect } from "react"
 import { Loader } from "lucide-react"
 import { Toaster } from "react-hot-toast"
 import { useThemeStore } from "./store/useThemeStore"
+import { useLocationStore } from "./store/useLocationStore"
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore()
+  const { initializeLocation } = useLocationStore()
   const { theme } = useThemeStore()
 
   useEffect(() => {
@@ -28,6 +30,12 @@ const App = () => {
   }, [checkAuth])
 
   console.log({ authUser })
+
+  useEffect(() => {
+    if (authUser) {
+      initializeLocation()
+    }
+  }, [authUser, initializeLocation])
 
   if (isCheckingAuth && !authUser)
     return (
