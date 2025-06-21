@@ -12,6 +12,8 @@ import NotificationsPage from "./pages/NotificationsPage"
 import MessagingPage from "./pages/MessagingPage"
 import CreateEventPage from "./pages/CreateEventPage"
 import CreatePostPage from "./pages/CreatePostPage"
+import PostPage from "./pages/PostPage"
+import HelpPage from "./pages/HelpPage"
 import Footer from "./components/Footer"
 import { useAuthStore } from "./store/useAuthStore"
 import { useEffect } from "react"
@@ -59,6 +61,8 @@ const App = () => {
         <Route path="/messages" element={authUser ? <MessagingPage /> : <Navigate to="/login" />} />
         <Route path="/create-event" element={authUser ? <CreateEventPage /> : <Navigate to="/login" />} />
         <Route path="/create-post" element={authUser ? <CreatePostPage /> : <Navigate to="/login" />} />
+        <Route path="/posts/:postId" element={authUser ? <PostPage /> : <Navigate to="/login" />} />
+        <Route path="/help" element={<HelpPage />} />
       </Routes>
       <Footer/>
       <Toaster/>
